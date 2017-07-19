@@ -51,6 +51,7 @@
      <Compile Include="Assets\__Scripts\PT_Mover.cs" />
      <Compile Include="Assets\__Scripts\PT_Scoreboard.cs" />
      <Compile Include="Assets\__Scripts\PT_XMLReader.cs" />
+     <Compile Include="Assets\__Scripts\Tile.cs" />
      <Compile Include="Assets\__Scripts\Utils.cs" />
      <None Include="Assets\__Scripts\UnlitAlpha.shader" />
      <None Include="Assets\Resources\Rooms.xml" />
