@@ -53,9 +53,25 @@ public class Mage : PT_MonoBehaviour {
 	public float elementRotDist = 0.5f; // Radius of rotation
 	public float elementRotSpeed = 0.5f; // Period of rotation
 	public int maxNumSelectedElements = 1;
+	public Color[] elementColors;
+
+	// These set the min and max distance between two line points
+	public float lineMinDelta = 0.1f;
+	public float lineMaxDelta = 0.5f;
+	public float lineMaxLength = 8f;
 
 	public bool ________________;
 
+	public float totalLineLength;
+	public List<Vector3> linePts; // Points to be shown in the line
+	protected LineRenderer liner; // Ref to the LineRenderer Component
+	protected float lineZ = -0.1f; // Z depth of the line
+	// ^ protected variables are between public and private.
+	// public variables can be seen by everyone
+	// private variables can only be seen by this class
+	// protected variables can be seen by this class or any subclasses
+	// only public variables appear in the Inspector
+	// (or those with [SerializeField] in the preceding line)
 	public MPhase mPhase = MPhase.idle;
 	public List<MouseInfo> mouseInfos = new List<MouseInfo>();
 	public string actionStartTag; // ["Mage", "Ground", "Enemy"]
@@ -72,6 +88,10 @@ public class Mage : PT_MonoBehaviour {
 
 		// Find the characterTrans to rotate with Face()
 		characterTrans = transform.Find("CharacterTrans");
+
+		// Get the LineRenderer component and disable it
+		liner = GetComponent<LineRenderer>();
+		liner.enabled = false;
 	}
 
 	void Update() {
@@ -173,6 +193,7 @@ There are only a few possible actions: // 1
 		// The mouse was pressed on something (it could be a drag or tap)
 		if (DEBUG) print("Mage.MouseDown()");
 
+		GameObject clickedGO = mouseInfos[0].hitInfo.collider.gameObject;
 		// ^ If the mouse wasn't clicked on anything, this would throw an error
 		// because hitInfo would be null. However, we know that MouseDown()
 		// is only called when the mouse WAS clicking on something, so
@@ -209,6 +230,10 @@ There are only a few possible actions: // 1
 		if (selectedElements.Count == 0) {
 			// Continuously walk toward the current mouseInfo pos
 			WalkTo(mouseInfos[mouseInfos.Count-1].loc);
+		} else {
+			// This is a ground spell, so we need to draw a line
+			AddPointToLiner( mouseInfos[mouseInfos.Count-1].loc );
+			// ^ add the most recent MouseInfo.loc to liner
 		}
 	}
 	void MouseDragUp() {
@@ -220,6 +245,10 @@ There are only a few possible actions: // 1
 		if (selectedElements.Count == 0) {
 			// Stop walking when the drag is stopped
 			StopWalking();
+		} else {
+			//TODO: Cast the Spell
+			// Clear the liner
+			ClearLiner();
 		}
 	}
 
@@ -326,5 +355,65 @@ There are only a few possible actions: // 1
 			vec.z = -0.5f;
 			el.lPos = vec; // Set the position of the Element_Sphere
 		}
+	}
+
+	//---------------- LineRenderer Code ----------------//
+	// Add a new point to the line. This ignores the point if it's too close to
+	// existing ones and adds extra points if it's too far away
+	void AddPointToLiner(Vector3 pt) {
+		pt.z = lineZ; // Set the z of the pt to lineZ to elevate it slightly
+		// above the ground
+		// linePts.Add(pt);
+		// UpdateLiner();
+
+		// Always add the point if linePts is empty...
+		if (linePts.Count == 0) {
+			linePts.Add (pt);
+			totalLineLength = 0;
+			return; // ...but wait for a second point to enable the LineRenderer
+		}
+		// If the line is too long already, return
+		if (totalLineLength > lineMaxLength) return;
+		// If there is a previous point (pt0), then find how far pt is from it
+		Vector3 pt0 = linePts[linePts.Count-1]; // Get the last point in linePts
+		Vector3 dir = pt-pt0;
+		float delta = dir.magnitude;
+		dir.Normalize();
+		totalLineLength += delta;
+		// If it's less than the min distance
+		if ( delta < lineMinDelta ) {
+			// ...then it's too close; don't add it
+			return;
+		}
+		// If it's further than the max distance then extra points...
+		if (delta > lineMaxDelta) {
+			// ...then add extra points in between
+			float numToAdd = Mathf.Ceil(delta/lineMaxDelta);
+			float midDelta = delta/numToAdd;
+			Vector3 ptMid;
+			for (int i=1; i<numToAdd; i++) {
+				ptMid = pt0+(dir*midDelta*i);
+				linePts.Add(ptMid);
+			}
+		}
+		linePts.Add(pt); // Add the point
+		UpdateLiner(); // And finally update the line
+	}
+	// Update the LineRenderer with the new points
+	public void UpdateLiner() {
+		// Get the type of the selectedElement
+		int el = (int) selectedElements[0].type;
+		// Set the line color based on that type
+		liner.SetColors(elementColors[el],elementColors[el]);
+		// Update the representation of the ground spell about to be cast
+		liner.SetVertexCount(linePts.Count); // Set the number of vertices
+		for (int i=0; i<linePts.Count; i++) {
+			liner.SetPosition(i, linePts[i]); // Set each vertex
+		}
+		liner.enabled = true; // Enable the LineRenderer
+	}
+	public void ClearLiner() {
+		liner.enabled = false; // Disable the LineRenderer
+		linePts.Clear(); // and clear all linePts
 	}
 }
