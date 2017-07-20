@@ -37,6 +37,7 @@ public class Mage : PT_MonoBehaviour {
 	public float mDragDist = 5; // Min dist in pixels to be a drag
 	public float activeScreenWidth = 1; // % of the screen to use
 	public float speed = 2; // The speed at which _Mage walks
+	public GameObject tapIndicatorPrefab; // Prefab of the tap indicator
 
 	public bool ________________;
 
@@ -150,14 +151,19 @@ There are only a few possible actions: // 1
 		// Something was tapped like a button
 		if (DEBUG) print("Mage.MouseTap()");
 		WalkTo(lastMouseInfo.loc); // Walk to the latest mouseInfo pos
+		ShowTap(lastMouseInfo.loc); // Show where the player tapped
 	}
 	void MouseDrag() {
 		// The mouse is being drug across something
 		if (DEBUG) print("Mage.MouseDrag()");
+		// Continuously walk toward the current mouseInfo pos
+		WalkTo(mouseInfos[mouseInfos.Count-1].loc);
 	}
 	void MouseDragUp() {
 		// The mouse is released after being drug
 		if (DEBUG) print("Mage.MouseDragUp()");
+		// Stop walking when the drag is stopped
+		StopWalking();
 	}
 
 	// Walk to a specific position. The position.z is always 0
@@ -204,5 +210,11 @@ There are only a few possible actions: // 1
 				StopWalking();
 			}
 		}
+	}
+
+	// Show where the player tapped
+	public void ShowTap(Vector3 loc) {
+		GameObject go = Instantiate(tapIndicatorPrefab) as GameObject;
+		go.transform.position = loc;
 	}
 }
