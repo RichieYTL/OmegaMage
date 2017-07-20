@@ -9,6 +9,16 @@ public enum MPhase {
 	drag
 }
 
+// The ElementType enum
+public enum ElementType {
+	earth,
+	water,
+	air,
+	fire,
+	aether,
+	none
+}
+
 [System.Serializable]
 public class MouseInfo {
 	public Vector3 loc; // 3D loc of the mouse near z=0
