@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 public enum MPhase {
 	idle,
@@ -412,7 +413,7 @@ There are only a few possible actions: // 1
 
 	// The Mage dies
 	void Die() {
-		Application.LoadLevel(0); // Reload the level
+		SceneManager.LoadScene(0); // Reload the level
 		// ^ Eventually, you'll want to do something more elegant
 	}
 
