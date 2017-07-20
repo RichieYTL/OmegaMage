@@ -429,6 +429,7 @@ There are only a few possible actions: // 1
 		linePts.Add(pt); // Add the point
 		UpdateLiner(); // And finally update the line
 	}
+
 	// Update the LineRenderer with the new points
 	public void UpdateLiner() {
 		// Get the type of the selectedElement
@@ -442,8 +443,14 @@ There are only a few possible actions: // 1
 		}
 		liner.enabled = true; // Enable the LineRenderer
 	}
+
 	public void ClearLiner() {
 		liner.enabled = false; // Disable the LineRenderer
 		linePts.Clear(); // and clear all linePts
+	}
+
+	// Stop any active drag or other mouse input
+	public void ClearInput() {
+		mPhase = MPhase.idle;
 	}
 }
