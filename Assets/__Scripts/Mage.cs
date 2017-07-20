@@ -49,6 +49,11 @@ public class Mage : PT_MonoBehaviour {
 	public float speed = 2; // The speed at which _Mage walks
 	public GameObject tapIndicatorPrefab; // Prefab of the tap indicator
 
+	public GameObject[] elementPrefabs; // The Element_Sphere Prefabs
+	public float elementRotDist = 0.5f; // Radius of rotation
+	public float elementRotSpeed = 0.5f; // Period of rotation
+	public int maxNumSelectedElements = 1;
+
 	public bool ________________;
 
 	public MPhase mPhase = MPhase.idle;
@@ -57,6 +62,8 @@ public class Mage : PT_MonoBehaviour {
 	public bool walking = false;
 	public Vector3 walkTarget;
 	public Transform characterTrans;
+
+	public List<Element> selectedElements = new List<Element>();
 
 	void Awake() {
 		S = this; // Set the Mage Singleton
@@ -109,6 +116,12 @@ There are only a few possible actions: // 1
 				if (dragDist >= mDragDist) {
 					mPhase = MPhase.drag;
 				}
+
+				// However, drag will immediately start after mTapTime if there
+				// are no elements selected.
+				if (selectedElements.Count == 0) {
+					mPhase = MPhase.drag;
+				}
 			}
 		}
 		if (mPhase == MPhase.drag) { // if the mouse is being drug
@@ -121,6 +134,8 @@ There are only a few possible actions: // 1
 				MouseDrag(); // Still dragging
 			}
 		}
+
+		OrbitSelectedElements();
 	}
 	// Pulls info about the Mouse, adds it to mouseInfos, and returns it
 	MouseInfo AddMouseInfo() {
@@ -226,5 +241,58 @@ There are only a few possible actions: // 1
 	public void ShowTap(Vector3 loc) {
 		GameObject go = Instantiate(tapIndicatorPrefab) as GameObject;
 		go.transform.position = loc;
+	}
+
+	// Chooses an Element_Sphere of elType and adds it to selectedElements
+	public void SelectElement(ElementType elType) {
+		if (elType == ElementType.none) { // If it's the none element...
+			ClearElements(); // then clear all Elements
+			return; // and return
+		}
+		if (maxNumSelectedElements == 1) {
+			// If only one can be selected, clear the existing one...
+			ClearElements(); // ...so it can be replaced
+		}
+		// Can't select more than maxNumSelectedElements simultaneously
+		if (selectedElements.Count >= maxNumSelectedElements) return;
+		// It's okay to add this element
+		GameObject go = Instantiate(elementPrefabs[(int) elType]) as GameObject;
+		// ^ Note the typecast from ElementType to int in the line above
+		Element el = go.GetComponent<Element>();
+		el.transform.parent = this.transform;
+		selectedElements.Add(el); // Add el to the list of selectedElements
+	}
+	// Clears all elements from selectedElements and destroys their GameObjects
+	public void ClearElements() {
+		foreach (Element el in selectedElements) {
+			// Destroy each GameObject in the list
+			Destroy(el.gameObject);
+		}
+		selectedElements.Clear(); // and clear the list
+	}
+	// Called every Update() to orbit the elements around
+	void OrbitSelectedElements() {
+		// If there are none selected, just return
+		if (selectedElements.Count == 0) return;
+		Element el;
+		Vector3 vec;
+		float theta0, theta;
+		float tau = Mathf.PI*2; // tau is 360° in radians (i.e. 6.283...)
+		// Divide the circle into the number of elements that are orbiting
+		float rotPerElement = tau / selectedElements.Count;
+		// The base rotation angle (theta0) is set based on time
+		theta0 = elementRotSpeed * Time.time * tau;
+		for (int i=0; i<selectedElements.Count; i++) {
+			// Determine the rotation angle for each element
+			theta = theta0 + i*rotPerElement;
+			el = selectedElements[i];
+			// Use simple trigonometry to turn the angle into a unit vector
+			vec = new Vector3(Mathf.Cos(theta),Mathf.Sin(theta),0);
+			// Multiply that unit vector by the elementRotDist
+			vec *= elementRotDist;
+			// Raise the element to waist height.
+			vec.z = -0.5f;
+			el.lPos = vec; // Set the position of the Element_Sphere
+		}
 	}
 }
