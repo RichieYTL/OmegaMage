@@ -58,6 +58,7 @@ public class Mage : PT_MonoBehaviour {
 
 	public MPhase mPhase = MPhase.idle;
 	public List<MouseInfo> mouseInfos = new List<MouseInfo>();
+	public string actionStartTag; // ["Mage", "Ground", "Enemy"]
 
 	public bool walking = false;
 	public Vector3 walkTarget;
@@ -171,24 +172,55 @@ There are only a few possible actions: // 1
 	void MouseDown() {
 		// The mouse was pressed on something (it could be a drag or tap)
 		if (DEBUG) print("Mage.MouseDown()");
+
+		// ^ If the mouse wasn't clicked on anything, this would throw an error
+		// because hitInfo would be null. However, we know that MouseDown()
+		// is only called when the mouse WAS clicking on something, so
+		// hitInfo is guaranteed to be defined.
+		GameObject taggedParent = Utils.FindTaggedParent(clickedGO);
+		if (taggedParent == null) {
+			actionStartTag = "";
+		} else {
+			actionStartTag = taggedParent.tag;
+			// ^ this should be either "Ground", "Mage", or "Enemy"
+		}
 	}
 	void MouseTap() {
 		// Something was tapped like a button
 		if (DEBUG) print("Mage.MouseTap()");
-		WalkTo(lastMouseInfo.loc); // Walk to the latest mouseInfo pos
-		ShowTap(lastMouseInfo.loc); // Show where the player tapped
+		// Now this cares what was tapped
+		switch (actionStartTag) {
+		case "Mage":
+			// Do nothing
+			break;
+		case "Ground":
+			// Move to tapped point @ z=0 whether or not an element is selected
+			WalkTo (lastMouseInfo.loc); // Walk to the latest mouseInfo pos
+			ShowTap (lastMouseInfo.loc); // Show where the player tapped
+			break;
+		}
 	}
 	void MouseDrag() {
 		// The mouse is being drug across something
 		if (DEBUG) print("Mage.MouseDrag()");
-		// Continuously walk toward the current mouseInfo pos
-		WalkTo(mouseInfos[mouseInfos.Count-1].loc);
+		// Drag is meaningless unless the mouse started on the ground
+		if (actionStartTag != "Ground") return;
+		// If there is no element selected, the player should follow the mouse
+		if (selectedElements.Count == 0) {
+			// Continuously walk toward the current mouseInfo pos
+			WalkTo(mouseInfos[mouseInfos.Count-1].loc);
+		}
 	}
 	void MouseDragUp() {
 		// The mouse is released after being drug
 		if (DEBUG) print("Mage.MouseDragUp()");
-		// Stop walking when the drag is stopped
-		StopWalking();
+		// Drag is meaningless unless the mouse started on the ground
+		if (actionStartTag != "Ground") return;
+		// If there is no element selected, stop walking now
+		if (selectedElements.Count == 0) {
+			// Stop walking when the drag is stopped
+			StopWalking();
+		}
 	}
 
 	// Walk to a specific position. The position.z is always 0
