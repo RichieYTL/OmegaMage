@@ -2,7 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyBug : PT_MonoBehaviour {
+public class EnemyBug : PT_MonoBehaviour, Enemy {
+	
+	[SerializeField]
+	private float _touchDamage = 1;
+	public float touchDamage {
+		get { return( _touchDamage ); }
+		set { _touchDamage = value; }
+	}
+	// The pos Property is already implemented in PT_MonoBehaviour
 	
 	public float speed = 0.5f;
 	public float health = 10;

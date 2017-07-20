@@ -2,7 +2,15 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class EnemySpiker : PT_MonoBehaviour {
+public class EnemySpiker : PT_MonoBehaviour, Enemy {
+	
+	[SerializeField]
+	private float _touchDamage = 0.5f;
+	public float touchDamage {
+		get { return( _touchDamage ); }
+		set { _touchDamage = value; }
+	}
+	// The pos Property is already implemented in PT_MonoBehaviour
 	
 	public float speed = 5f;
 	public string roomXMLString = "{";
@@ -32,7 +40,7 @@ public class EnemySpiker : PT_MonoBehaviour {
 	}
 
 	void FixedUpdate () { // Happens every physics step (i.e., 50 times/second)
-		rigidbody.velocity = moveDir * speed;
+		GetComponent<Rigidbody>().velocity = moveDir * speed;
 	}
 
 	// This has the same structure as the Damage Method in EnemyBug
