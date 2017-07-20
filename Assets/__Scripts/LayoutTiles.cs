@@ -108,7 +108,15 @@ public class LayoutTiles : MonoBehaviour {
 				ti.type = type;
 				ti.height = height;
 				ti.tex = tileTexStr;
-				// More to come here...
+
+				// If the type is still rawType, continue to the next iteration
+				if (rawType == type) continue;
+				// Check for specific entities in the room
+				switch (rawType) { // 1
+				case "X": // Starting position for the Mage
+					Mage.S.pos = ti.pos; // Uses the Mage Singleton
+					break;
+				}
 			}
 		}
 	}
