@@ -41,6 +41,7 @@ public class MouseInfo {
 
 // Mage is a subclass of PT_MonoBehaviour
 public class Mage : PT_MonoBehaviour {
+	
 	static public Mage S;
 	static public bool DEBUG = true;
 	public float mTapTime = 0.1f; // How long is considered a tap
@@ -62,7 +63,21 @@ public class Mage : PT_MonoBehaviour {
 
 	public GameObject fireGroundSpellPrefab;
 
+	public float health = 4; // Total mage health
+	public float damageTime = -100;
+	// ^ Time that damage occurred. It's set to -100 so that the Mage doesn't
+	// act damaged immediately when the scene starts
+	public float knockbackDist = 1; // Distance to move backward
+	public float knockbackDur = 0.5f; // Seconds to move backward
+	public float invincibleDur = 0.5f; // Seconds to be invincible
+	public int invTimesToBlink = 4; // # blinks while invincible
+
 	public bool ________________;
+
+	private bool invincibleBool = false; // Is Mage invincible?
+	private bool knockbackBool = false; // Mage being knocked back?
+	private Vector3 knockbackDir; // Direction of knockback
+	private Transform viewCharacterTrans;
 
 	protected Transform spellAnchor; // The parent transform for all spells
 
@@ -92,6 +107,7 @@ public class Mage : PT_MonoBehaviour {
 
 		// Find the characterTrans to rotate with Face()
 		characterTrans = transform.Find("CharacterTrans");
+		viewCharacterTrans = characterTrans.Find("View_Character");
 
 		// Get the LineRenderer component and disable it
 		liner = GetComponent<LineRenderer>();
@@ -167,6 +183,7 @@ There are only a few possible actions: // 1
 
 		OrbitSelectedElements();
 	}
+
 	// Pulls info about the Mouse, adds it to mouseInfos, and returns it
 	MouseInfo AddMouseInfo() {
 		MouseInfo mInfo = new MouseInfo();
@@ -198,6 +215,7 @@ There are only a few possible actions: // 1
 			return( mouseInfos[mouseInfos.Count-1] );
 		}
 	}
+
 	void MouseDown() {
 		// The mouse was pressed on something (it could be a drag or tap)
 		if (DEBUG) print("Mage.MouseDown()");
@@ -215,6 +233,7 @@ There are only a few possible actions: // 1
 			// ^ this should be either "Ground", "Mage", or "Enemy"
 		}
 	}
+
 	void MouseTap() {
 		// Something was tapped like a button
 		if (DEBUG) print("Mage.MouseTap()");
@@ -230,6 +249,7 @@ There are only a few possible actions: // 1
 			break;
 		}
 	}
+
 	void MouseDrag() {
 		// The mouse is being drug across something
 		if (DEBUG) print("Mage.MouseDrag()");
@@ -245,6 +265,7 @@ There are only a few possible actions: // 1
 			// ^ add the most recent MouseInfo.loc to liner
 		}
 	}
+
 	void MouseDragUp() {
 		// The mouse is released after being drug
 		if (DEBUG) print("Mage.MouseDragUp()");
@@ -289,6 +310,7 @@ There are only a few possible actions: // 1
 		walking = true; // Now the Mage is walking
 		Face(walkTarget); // Look in the direction of the walkTarget
 	}
+
 	public void Face(Vector3 poi) { // Face toward a point of interest
 		Vector3 delta = poi-pos; // Find vector to the point of interest
 		// Use Atan2 to get the rotation around Z that points the X-axis of
@@ -297,11 +319,37 @@ There are only a few possible actions: // 1
 		// Set the rotation of characterTrans (doesn't actually rotate _Mage)
 		characterTrans.rotation = Quaternion.Euler(0,0,rZ);
 	}
+
 	public void StopWalking() { // Stops the _Mage from walking
 		walking = false;
 		GetComponent<Rigidbody>().velocity = Vector3.zero;
 	}
+
 	void FixedUpdate () { // Happens every physics step (i.e., 50 times/second)
+		if (invincibleBool) {
+			// Get number [0..1]
+			float blinkU = (Time.time - damageTime)/invincibleDur;
+			blinkU *= invTimesToBlink; // Multiply by times to blink
+			blinkU %= 1.0f;
+			// ^ Modulo 1.0 gives us the decimal remainder left when dividing ?blinkU
+			// by 1.0. For example: 3.85f % 1.0f is 0.85f
+			bool visible = (blinkU > 0.5f);
+			if (Time.time - damageTime > invincibleDur) {
+				invincibleBool = false;
+				visible = true; // Just to be sure
+			}
+			// Making the GameObject inactive makes it invisible
+			viewCharacterTrans.gameObject.SetActive(visible);
+		}
+		if (knockbackBool) {
+			if (Time.time - damageTime > knockbackDur) {
+				knockbackBool = false;
+			}
+			float knockbackSpeed = knockbackDist/knockbackDur;
+			vel = knockbackDir * knockbackSpeed;
+			return; // Returns to avoid walking code below
+		}
+
 		if (walking) { // If Mage is walking
 			if ( (walkTarget-pos).magnitude < speed*Time.fixedDeltaTime ) {
 				// If Mage is very close to walkTarget, just stop there
@@ -316,6 +364,7 @@ There are only a few possible actions: // 1
 			GetComponent<Rigidbody>().velocity = Vector3.zero;
 		}
 	}
+
 	void OnCollisionEnter( Collision coll ) {
 		GameObject otherGO = coll.gameObject;
 		// Colliding with a wall can also stop walking
@@ -326,6 +375,41 @@ There are only a few possible actions: // 1
 				StopWalking();
 			}
 		}
+
+		// See if it's an EnemyBug
+		EnemyBug bug = coll.gameObject.GetComponent<EnemyBug>();
+		// If otherGO is an EnemyBug, pass otherGO to CollisionDamage()
+		if (bug != null) CollisionDamage(otherGO);
+	}
+
+	void OnTriggerEnter(Collider other) {
+		EnemySpiker spiker = other.GetComponent<EnemySpiker>();
+		if (spiker != null) {
+			CollisionDamage(other.gameObject);
+		}
+	}
+
+	void CollisionDamage(GameObject enemy) {
+		// Don't take damage if you're already invincible
+		if (invincibleBool) return;
+		// The Mage has been hit by an enemy
+		StopWalking();
+		ClearInput();
+		health -= 1; // Take 1 point of damage (for now)
+		if (health <= 0) {
+			Die();
+			return;
+		}
+		damageTime = Time.time;
+		knockbackBool = true;
+		knockbackDir = (pos - enemy.transform.position).normalized;
+		invincibleBool = true;
+	}
+
+	// The Mage dies
+	void Die() {
+		Application.LoadLevel(0); // Reload the level
+		// ^ Eventually, you'll want to do something more elegant
 	}
 
 	// Show where the player tapped
@@ -353,6 +437,7 @@ There are only a few possible actions: // 1
 		el.transform.parent = this.transform;
 		selectedElements.Add(el); // Add el to the list of selectedElements
 	}
+
 	// Clears all elements from selectedElements and destroys their GameObjects
 	public void ClearElements() {
 		foreach (Element el in selectedElements) {
@@ -361,6 +446,7 @@ There are only a few possible actions: // 1
 		}
 		selectedElements.Clear(); // and clear the list
 	}
+
 	// Called every Update() to orbit the elements around
 	void OrbitSelectedElements() {
 		// If there are none selected, just return
