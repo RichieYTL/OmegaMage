@@ -115,6 +115,9 @@ public class EnemyBug : PT_MonoBehaviour, Enemy {
 		case ElementType.air:
 			// air doesn't damage EnemyBugs, so do nothing
 			break;
+		case ElementType.water:
+			damageDict [eT] = Mathf.Max (amt, damageDict [eT]);
+			break;
 		default:
 			// By default, damage is added to the other damage by same element
 			damageDict[eT] += amt;

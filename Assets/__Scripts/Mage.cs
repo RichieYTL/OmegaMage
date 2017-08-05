@@ -63,6 +63,7 @@ public class Mage : PT_MonoBehaviour {
 	public float lineMaxLength = 8f;
 
 	public GameObject fireGroundSpellPrefab;
+	public GameObject waterGroundSpellPrefab;
 
 	public float health = 4; // Total mage health
 	public float damageTime = -100;
@@ -72,6 +73,9 @@ public class Mage : PT_MonoBehaviour {
 	public float knockbackDur = 0.5f; // Seconds to move backward
 	public float invincibleDur = 0.5f; // Seconds to be invincible
 	public int invTimesToBlink = 4; // # blinks while invincible
+	public float icicleSpeed = 20f;
+	public float lastShot;
+	public float icicleDelay = 0;
 
 	public bool ________________;
 
@@ -298,7 +302,18 @@ There are only a few possible actions: // 1
 				fireGO.transform.position = pt;
 			}
 			break;
-			//TODO: Add other elements types later
+
+		case ElementType.water:
+			GameObject waterGO;
+			foreach (Vector3 pt in linePts) {
+				if (Time.time - lastShot > icicleDelay) {
+					waterGO = Instantiate (waterGroundSpellPrefab) as GameObject;
+					waterGO.transform.parent = spellAnchor;
+					waterGO.GetComponent<Rigidbody> ().velocity = pt * icicleSpeed;
+					lastShot = Time.time;
+				}
+			}
+			break;
 		}
 		// Clear the selectedElements; they're consumed by the spell
 		ClearElements();

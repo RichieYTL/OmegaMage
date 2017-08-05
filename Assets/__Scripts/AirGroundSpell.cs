@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AirGroundSpell : MonoBehaviour {
+public class AirGroundSpell : PT_MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
